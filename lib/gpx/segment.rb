@@ -34,7 +34,7 @@ module GPX
       last_pt = @points[-1]
       if pt.time
         @earliest_point = pt if @earliest_point.nil? || (pt.time < @earliest_point.time)
-        @latest_point = pt if @latest_point.nil? || (pt.time > @latest_point.time)
+        @latest_point = pt if @latest_point.nil? || @latest_point.time.nil? || (pt.time > @latest_point.time)
       else
         # when no time information in data, we consider the points are ordered
         @earliest_point = @points[0]
