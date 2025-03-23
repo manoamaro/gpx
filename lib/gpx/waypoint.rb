@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GPX
   # This class supports the concept of a waypoint.  Beware that this class has
   # not seen much use yet, since WalkingBoss does not use waypoints right now.
@@ -5,6 +7,7 @@ module GPX
     SUB_ELEMENTS = %w[ele magvar geoidheight name cmt desc src link sym type fix sat hdop vdop pdop ageofdgpsdata dgpsid extensions].freeze
 
     attr_reader :gpx_file
+
     SUB_ELEMENTS.each { |sub_el| attr_accessor sub_el.to_sym }
 
     # Not implemented

@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module GPX
   class GPXFile < Base
     attr_accessor :tracks,
                   :routes, :waypoints, :bounds, :lowest_point, :highest_point, :duration, :ns, :time, :name, :version, :creator, :description, :moving_duration
 
-    DEFAULT_CREATOR = "GPX RubyGem #{GPX::VERSION} -- http://dougfales.github.io/gpx/".freeze
+    DEFAULT_CREATOR = "GPX RubyGem #{GPX::VERSION} -- http://dougfales.github.io/gpx/"
 
     # This initializer can be used to create a new GPXFile from an existing
     # file or to create a new GPXFile instance with no data (so that you can
@@ -23,6 +25,7 @@ module GPX
     #         gpx_file = GPXFile.new(:tracks => [some_track])
     #
     def initialize(opts = {})
+      super()
       @duration = 0
       @attributes = {}
       @namespace_defs = []
@@ -32,7 +35,7 @@ module GPX
       if opts[:gpx_file] || opts[:gpx_data]
         if opts[:gpx_file]
           gpx_file = opts[:gpx_file]
-          gpx_file = File.open(gpx_file) unless gpx_file.is_a?(File)
+          gpx_file = File.open(gpx_file) unless gpx_file.respond_to?(:read)
           @xml = Nokogiri::XML(gpx_file)
         else
           @xml = Nokogiri::XML(opts[:gpx_data])
@@ -43,7 +46,8 @@ module GPX
         @namespace_defs = gpx_element.namespace_definitions
         @version = gpx_element['version']
         reset_meta_data
-        bounds_element = (begin
+        bounds_element = (
+        begin
           @xml.at('metadata/bounds')
         rescue StandardError
           nil
@@ -58,20 +62,20 @@ module GPX
         end
 
         @time = begin
-                  Time.parse(@xml.at('metadata/time').inner_text)
-                rescue StandardError
-                  nil
-                end
+          Time.parse(@xml.at('metadata/time').inner_text)
+        rescue StandardError
+          nil
+        end
         @name = begin
-                  @xml.at('metadata/name').inner_text
-                rescue StandardError
-                  nil
-                end
+          @xml.at('metadata/name').inner_text
+        rescue StandardError
+          nil
+        end
         @description = begin
-                         @xml.at('metadata/desc').inner_text
-                       rescue StandardError
-                         nil
-                       end
+          @xml.at('metadata/desc').inner_text
+        rescue StandardError
+          nil
+        end
         @xml.search('trk').each do |trk|
           trk = Track.new(element: trk, gpx_file: self)
           update_meta_data(trk, get_bounds)
@@ -87,7 +91,7 @@ module GPX
       else
         reset_meta_data
         opts.each { |attr_name, value| instance_variable_set("@#{attr_name}", value) }
-        unless @tracks.nil? || @tracks.size.zero?
+        unless @tracks.nil? || @tracks.empty?
           @tracks.each { |trk| update_meta_data(trk) }
           calculate_duration
         end
@@ -103,7 +107,8 @@ module GPX
         result = el[name]
         break unless result.nil?
       end
-      (begin
+      (
+      begin
         result.to_f
       rescue StandardError
         nil
@@ -234,13 +239,13 @@ module GPX
       # $stderr.puts @namespace_defs.inspect
       gpx_header = {}
       @attributes.each do |k, v|
-        k = v.namespace.prefix + ':' + k if v.namespace
+        k = "#{v.namespace.prefix}:#{k}" if v.namespace
         gpx_header[k] = v.value
       end
 
       @namespace_defs.each do |nsd|
         tag = 'xmlns'
-        tag += ':' + nsd.prefix if nsd.prefix
+        tag += ":#{nsd.prefix}" if nsd.prefix
         gpx_header[tag] = nsd.href
       end
       gpx_header
@@ -260,7 +265,7 @@ module GPX
       # $stderr.puts gpx_header.keys.inspect
 
       # rubocop:disable Metrics/BlockLength
-      doc = Nokogiri::XML::Builder.new do |xml|
+      Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
         xml.gpx(gpx_header) do
           # version 1.0 of the schema doesn't support the metadata element, so push them straight to the root 'gpx' element
           if @version == '1.0'
@@ -285,19 +290,17 @@ module GPX
             end
           end
 
-          unless tracks.nil?
-            tracks.each do |t|
-              xml.trk do
-                xml.name t.name
+          tracks&.each do |t|
+            xml.trk do
+              xml.name t.name
 
-                t.segments.each do |seg|
-                  xml.trkseg do
-                    seg.points.each do |p|
-                      xml.trkpt(lat: p.lat, lon: p.lon) do
-                        xml.time p.time.xmlschema unless p.time.nil?
-                        xml.ele p.elevation unless p.elevation.nil?
-                        xml << p.extensions.to_xml unless p.extensions.nil?
-                      end
+              t.segments.each do |seg|
+                xml.trkseg do
+                  seg.points.each do |p|
+                    xml.trkpt(lat: p.lat, lon: p.lon) do
+                      xml.time p.time.xmlschema unless p.time.nil?
+                      xml.ele p.elevation unless p.elevation.nil?
+                      xml << p.extensions.to_xml unless p.extensions.nil?
                     end
                   end
                 end
@@ -305,27 +308,23 @@ module GPX
             end
           end
 
-          unless waypoints.nil?
-            waypoints.each do |w|
-              xml.wpt(lat: w.lat, lon: w.lon) do
-                xml.time w.time.xmlschema unless w.time.nil?
-                Waypoint::SUB_ELEMENTS.each do |sub_elem|
-                  xml.send(sub_elem, w.send(sub_elem)) if w.respond_to?(sub_elem) && !w.send(sub_elem).nil?
-                end
+          waypoints&.each do |w|
+            xml.wpt(lat: w.lat, lon: w.lon) do
+              xml.time w.time.xmlschema unless w.time.nil?
+              Waypoint::SUB_ELEMENTS.each do |sub_elem|
+                xml.send(sub_elem, w.send(sub_elem)) if w.respond_to?(sub_elem) && !w.send(sub_elem).nil?
               end
             end
           end
 
-          unless routes.nil?
-            routes.each do |r|
-              xml.rte do
-                xml.name r.name
+          routes&.each do |r|
+            xml.rte do
+              xml.name r.name
 
-                r.points.each do |p|
-                  xml.rtept(lat: p.lat, lon: p.lon) do
-                    xml.time p.time.xmlschema unless p.time.nil?
-                    xml.ele p.elevation unless p.elevation.nil?
-                  end
+              r.points.each do |p|
+                xml.rtept(lat: p.lat, lon: p.lon) do
+                  xml.time p.time.xmlschema unless p.time.nil?
+                  xml.ele p.elevation unless p.elevation.nil?
                 end
               end
             end
@@ -333,17 +332,17 @@ module GPX
         end
       end
       # rubocop:enable Metrics/BlockLength
-
-      doc
     end
 
     # Calculates and sets the duration attribute by subtracting the time on
     # the very first point from the time on the very last point.
     def calculate_duration
       @duration = 0
-      if @tracks.nil? || @tracks.size.zero? || @tracks[0].segments.nil? || @tracks[0].segments.size.zero?
+      if @tracks.nil? || @tracks.empty? || @tracks[0].segments.nil? || @tracks[0].segments.empty?
         return @duration
+
       end
+
       @duration = (@tracks[-1].segments[-1].points[-1].time - @tracks.first.segments.first.points.first.time)
     rescue StandardError
       @duration = 0
