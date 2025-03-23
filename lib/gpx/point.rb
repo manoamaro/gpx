@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GPX
   # The base class for all points.  Trackpoint and Waypoint both descend from this base class.
   class Point < Base
@@ -10,6 +12,7 @@ module GPX
     # addition, you can pass an XML element to this initializer, and the
     # relevant info will be parsed out.
     def initialize(opts = { lat: 0.0, lon: 0.0, elevation: 0.0, time: Time.now })
+      super()
       @gpx_file = opts[:gpx_file]
       if opts[:element]
         elem = opts[:element]
@@ -18,7 +21,8 @@ module GPX
         @latr = (D_TO_R * @lat)
         @lonr = (D_TO_R * @lon)
         # '-'? yyyy '-' mm '-' dd 'T' hh ':' mm ':' ss ('.' s+)? (zzzzzz)?
-        @time = (begin
+        @time = (
+        begin
           Time.xmlschema(elem.at('time').inner_text)
         rescue StandardError
           nil

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GPX
   # In GPX, a single Track can hold multiple Segments, each of which hold
   # multiple points (in this library, those points are instances of
@@ -12,6 +14,7 @@ module GPX
     # Initialize a track from a XML::Node, or, if no :element option is
     # passed, initialize a blank Track object.
     def initialize(opts = {})
+      super()
       @gpx_file = opts[:gpx_file]
       @segments = []
       @points = []
@@ -20,17 +23,20 @@ module GPX
       return unless opts[:element]
 
       trk_element = opts[:element]
-      @name = (begin
+      @name = (
+      begin
         trk_element.at('name').inner_text
       rescue StandardError
         ''
       end)
-      @comment = (begin
+      @comment = (
+      begin
         trk_element.at('cmt').inner_text
       rescue StandardError
         ''
       end)
-      @description = (begin
+      @description = (
+      begin
         trk_element.at('desc').inner_text
       rescue StandardError
         ''
@@ -44,6 +50,7 @@ module GPX
     # Append a segment to this track, updating its meta data along the way.
     def append_segment(seg)
       return if seg.points.empty?
+
       update_meta_data(seg)
       @segments << seg
     end
@@ -88,7 +95,7 @@ module GPX
     # Returns true if this track has no points in it.  This should return
     # true even when the track has empty segments.
     def empty?
-      (points.nil? || points.size.zero?)
+      points.nil? || points.empty?
     end
 
     # Prints out a friendly summary of this track (sans points).  Useful for

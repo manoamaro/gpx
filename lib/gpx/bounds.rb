@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GPX
   class Bounds < Base
     attr_accessor :min_lat, :max_lat, :max_lon, :min_lon
@@ -5,6 +7,7 @@ module GPX
     # Creates a new bounds object with the passed-in min and max longitudes
     # and latitudes.
     def initialize(opts = { min_lat: 90.0, max_lat: -90.0, min_lon: 180.0, max_lon: -180.0 })
+      super()
       @min_lat = opts[:min_lat].to_f
       @max_lat = opts[:max_lat].to_f
       @min_lon = opts[:min_lon].to_f
@@ -25,7 +28,7 @@ module GPX
 
     # Returns true if the pt is within these bounds.
     def contains?(pt)
-      ((pt.lat >= min_lat) && (pt.lat <= max_lat) && (pt.lon >= min_lon) && (pt.lon <= max_lon))
+      (pt.lat >= min_lat) && (pt.lat <= max_lat) && (pt.lon >= min_lon) && (pt.lon <= max_lon)
     end
 
     # Adds an item to itself, expanding its min/max lat/lon as needed to
